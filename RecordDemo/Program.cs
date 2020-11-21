@@ -36,7 +36,7 @@ namespace RecordDemo
          {
             var response = await task;
             var stream = await response.Content.ReadAsStreamAsync();
-            if (response.IsSuccessStatusCode/* && typeof(TResult) != typeof(JobModel)*/)
+            if (response.IsSuccessStatusCode && typeof(TResult) != typeof(JobModel))
             {
                action(DeserializeJsonFromStream<TResult>(stream));
             }
@@ -64,13 +64,14 @@ namespace RecordDemo
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            Task.WhenAll(DoTaskInAnotherThread<List<JobModel>>(TaskList[0], d => jobList.AddRange(d))
+            Task[] tasks = { DoTaskInAnotherThread<List<JobModel>>(TaskList[0], d => jobList.AddRange(d))
                         , DoTaskInAnotherThread<List<JobModel>>(TaskList[1], d => jobList.AddRange(d))
                         , DoTaskInAnotherThread<List<JobModel>>(TaskList[2], d => jobList.AddRange(d))
                         , DoTaskInAnotherThread<List<JobModel>>(TaskList[3], d => jobList.AddRange(d))
                         , DoTaskInAnotherThread<List<JobModel>>(TaskList[4], d => jobList.AddRange(d))
-                        , DoTaskInAnotherThread<JobModel>(TaskList[5], d => jobList.Add(d)))
-               .ContinueWith(t =>
+                        , DoTaskInAnotherThread<JobModel>(TaskList[5], d => jobList.Add(d)) };
+
+            Task.WhenAll(tasks).ContinueWith(t =>
             {
                Console.WriteLine("Total jobs loaded: {0}", jobList.Count);
 
@@ -88,15 +89,10 @@ namespace RecordDemo
             }, TaskContinuationOptions.OnlyOnRanToCompletion);
 
             // capture exception in thread
-            //Task.WhenAny(DoTaskInAnotherThread<List<JobModel>>(TaskList[0], d => jobList.AddRange(d))
-            //            , DoTaskInAnotherThread<List<JobModel>>(TaskList[1], d => jobList.AddRange(d))
-            //            , DoTaskInAnotherThread<List<JobModel>>(TaskList[2], d => jobList.AddRange(d))
-            //            , DoTaskInAnotherThread<List<JobModel>>(TaskList[3], d => jobList.AddRange(d))
-            //            , DoTaskInAnotherThread<List<JobModel>>(TaskList[4], d => jobList.AddRange(d))
-            //            , DoTaskInAnotherThread<JobModel>(TaskList[5], d => jobList.Add(d))).ContinueWith(t =>
-            //{
-            //   Console.WriteLine("Some thing went wrong: {0}", t.Exception.Message);
-            //}, TaskContinuationOptions.OnlyOnFaulted);
+            Task.WhenAll(tasks).ContinueWith(t =>
+            {
+               Console.WriteLine("Some thing went wrong: {0}", t.Exception.Message);
+            }, TaskContinuationOptions.OnlyOnFaulted);
          }
          catch (Exception ex)
          {
