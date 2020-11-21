@@ -21,10 +21,10 @@ namespace RecordDemo
             {
                client.GetAsync("https://jobs.github.com/positions.json?page=0"),
                client.GetAsync("https://jobs.github.com/positions.json?page=1"),
+               client.GetAsync("https://jobs.github.com/positions/6efab349-9691-4a34-a6e6-96a7b544e60f.json"),
                client.GetAsync("https://jobs.github.com/positions.json?page=2"),
                client.GetAsync("https://jobs.github.com/positions.json?page=3"),
                client.GetAsync("https://jobs.github.com/positions.json?page=4"),
-               client.GetAsync("https://jobs.github.com/positions/6efab349-9691-4a34-a6e6-96a7b544e60f.json"),
             };
          }
       }
@@ -32,7 +32,7 @@ namespace RecordDemo
 
       public static Task DoTaskInAnotherThread<TResult>(Task<HttpResponseMessage> task, Action<TResult> action)
       {
-         return Task.Run(async () =>
+         var getApiThreadTask = Task.Run(async () =>
          {
             var response = await task;
             var stream = await response.Content.ReadAsStreamAsync();
@@ -49,10 +49,20 @@ namespace RecordDemo
                   Content = content
                };
             }
+         });
 
+         getApiThreadTask.ContinueWith(t =>
+         {
             var per = (++TaskCompleteCount / TaskList.Count) * 100;
             Console.WriteLine("Loading {0:F2}%...", per);
-         });
+         }, TaskContinuationOptions.OnlyOnRanToCompletion);
+
+         getApiThreadTask.ContinueWith(t =>
+         {
+            //Console.WriteLine("Some thing went wrong: {0}", t.Exception.Message);
+         }, TaskContinuationOptions.OnlyOnFaulted);
+
+         return getApiThreadTask;
       }
 
       static void Main(string[] args)
@@ -66,10 +76,10 @@ namespace RecordDemo
 
             Task[] tasks = { DoTaskInAnotherThread<List<JobModel>>(TaskList[0], d => jobList.AddRange(d))
                         , DoTaskInAnotherThread<List<JobModel>>(TaskList[1], d => jobList.AddRange(d))
-                        , DoTaskInAnotherThread<List<JobModel>>(TaskList[2], d => jobList.AddRange(d))
+                        , DoTaskInAnotherThread<JobModel>(TaskList[2], d => jobList.Add(d))
                         , DoTaskInAnotherThread<List<JobModel>>(TaskList[3], d => jobList.AddRange(d))
                         , DoTaskInAnotherThread<List<JobModel>>(TaskList[4], d => jobList.AddRange(d))
-                        , DoTaskInAnotherThread<JobModel>(TaskList[5], d => jobList.Add(d)) };
+                        , DoTaskInAnotherThread<List<JobModel>>(TaskList[5], d => jobList.AddRange(d)) };
 
             Task.WhenAll(tasks).ContinueWith(t =>
             {
@@ -85,7 +95,7 @@ namespace RecordDemo
                    ts.Milliseconds / 10);
                Console.WriteLine("RunTime " + elapsedTime);
                #endregion
-               //Console.Write("Press any key to exit...");
+               Console.Write("Press any key to exit...");
             }, TaskContinuationOptions.OnlyOnRanToCompletion);
 
             // capture exception in thread
