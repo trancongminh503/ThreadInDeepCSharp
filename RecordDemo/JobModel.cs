@@ -37,5 +37,10 @@ namespace RecordDemo
 
       [JsonProperty("company_logo")]
       public string CompanyLogo { get; set; }
+
+      public override string ToString()
+      {
+         return Id;
+      }
    }
 }

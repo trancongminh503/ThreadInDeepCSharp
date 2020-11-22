@@ -39,6 +39,9 @@ namespace RecordDemo
             if (response.IsSuccessStatusCode && typeof(TResult) != typeof(JobModel))
             {
                action(DeserializeJsonFromStream<TResult>(stream));
+
+               var per = (++TaskCompleteCount / TaskList.Count) * 100;
+               Console.WriteLine("Loading {0:F2}%...", per);
             }
             else
             {
@@ -53,12 +56,7 @@ namespace RecordDemo
 
          getApiThreadTask.ContinueWith(t =>
          {
-            var per = (++TaskCompleteCount / TaskList.Count) * 100;
-            Console.WriteLine("Loading {0:F2}%...", per);
-         }, TaskContinuationOptions.OnlyOnRanToCompletion);
-
-         getApiThreadTask.ContinueWith(t =>
-         {
+            Console.WriteLine("ERROR: {0} to load {1}", t.Status, typeof(TResult));
             //Console.WriteLine("Some thing went wrong: {0}", t.Exception.Message);
          }, TaskContinuationOptions.OnlyOnFaulted);
 
@@ -67,47 +65,38 @@ namespace RecordDemo
 
       static void Main(string[] args)
       {
-         try
-         {
-            Console.WriteLine("***Start program. Thread Id: {0}***", Thread.CurrentThread.ManagedThreadId);
-            var jobList = new List<JobModel>();
-            Stopwatch stopWatch = new Stopwatch();
-            stopWatch.Start();
+         Console.WriteLine("***Start program. Thread Id: {0}***", Thread.CurrentThread.ManagedThreadId);
+         var jobList = new List<JobModel>();
+         Stopwatch stopWatch = new Stopwatch();
+         stopWatch.Start();
 
-            Task[] tasks = { DoTaskInAnotherThread<List<JobModel>>(TaskList[0], d => jobList.AddRange(d))
+         Task[] tasks = { DoTaskInAnotherThread<List<JobModel>>(TaskList[0], d => jobList.AddRange(d))
                         , DoTaskInAnotherThread<List<JobModel>>(TaskList[1], d => jobList.AddRange(d))
                         , DoTaskInAnotherThread<JobModel>(TaskList[2], d => jobList.Add(d))
                         , DoTaskInAnotherThread<List<JobModel>>(TaskList[3], d => jobList.AddRange(d))
                         , DoTaskInAnotherThread<List<JobModel>>(TaskList[4], d => jobList.AddRange(d))
                         , DoTaskInAnotherThread<List<JobModel>>(TaskList[5], d => jobList.AddRange(d)) };
 
-            Task.WhenAll(tasks).ContinueWith(t =>
-            {
-               Console.WriteLine("Total jobs loaded: {0}", jobList.Count);
-
-               #region Stopwatch
-               stopWatch.Stop();
-               // Get the elapsed time as a TimeSpan value.
-               TimeSpan ts = stopWatch.Elapsed;
-               // Format and display the TimeSpan value.
-               string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                   ts.Hours, ts.Minutes, ts.Seconds,
-                   ts.Milliseconds / 10);
-               Console.WriteLine("RunTime " + elapsedTime);
-               #endregion
-               Console.Write("Press any key to exit...");
-            }, TaskContinuationOptions.OnlyOnRanToCompletion);
-
-            // capture exception in thread
-            Task.WhenAll(tasks).ContinueWith(t =>
-            {
-               Console.WriteLine("Some thing went wrong: {0}", t.Exception.Message);
-            }, TaskContinuationOptions.OnlyOnFaulted);
-         }
-         catch (Exception ex)
+         Task.WhenAll(tasks).ContinueWith(t =>
          {
-            Console.WriteLine("Some thing went wrong: {0}", ex.Message);
-         }
+            if (t.Status == TaskStatus.Faulted)
+            {
+               Console.WriteLine("ERROR: One or more task is faulted.");
+            }
+
+            Console.WriteLine(">>> Total jobs loaded: {0}", jobList.Count);
+            #region Stopwatch
+            stopWatch.Stop();
+            // Get the elapsed time as a TimeSpan value.
+            TimeSpan ts = stopWatch.Elapsed;
+            // Format and display the TimeSpan value.
+            string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+             ts.Hours, ts.Minutes, ts.Seconds,
+             ts.Milliseconds / 10);
+            Console.WriteLine(">>> RunTime " + elapsedTime);
+            #endregion
+            Console.Write("Press any key to exit...");
+         });
          Console.ReadLine();
       }
    }

@@ -6,7 +6,6 @@ D:\C# Advanced\CSharp9\RecordDemo\bin\Debug\netcoreapp3.1\RecordDemo.dll
 D:\C# Advanced\CSharp9\RecordDemo\bin\Debug\netcoreapp3.1\RecordDemo.pdb
 D:\C# Advanced\CSharp9\RecordDemo\bin\Debug\netcoreapp3.1\Newtonsoft.Json.dll
 D:\C# Advanced\CSharp9\RecordDemo\bin\Debug\netcoreapp3.1\System.Text.Json.dll
-D:\C# Advanced\CSharp9\RecordDemo\obj\Debug\netcoreapp3.1\RecordDemo.csprojAssemblyReference.cache
 D:\C# Advanced\CSharp9\RecordDemo\obj\Debug\netcoreapp3.1\RecordDemo.AssemblyInfoInputs.cache
 D:\C# Advanced\CSharp9\RecordDemo\obj\Debug\netcoreapp3.1\RecordDemo.AssemblyInfo.cs
 D:\C# Advanced\CSharp9\RecordDemo\obj\Debug\netcoreapp3.1\RecordDemo.csproj.CoreCompileInputs.cache
@@ -14,3 +13,4 @@ D:\C# Advanced\CSharp9\RecordDemo\obj\Debug\netcoreapp3.1\RecordDemo.csproj.Copy
 D:\C# Advanced\CSharp9\RecordDemo\obj\Debug\netcoreapp3.1\RecordDemo.dll
 D:\C# Advanced\CSharp9\RecordDemo\obj\Debug\netcoreapp3.1\RecordDemo.pdb
 D:\C# Advanced\CSharp9\RecordDemo\obj\Debug\netcoreapp3.1\RecordDemo.genruntimeconfig.cache
+D:\C# Advanced\CSharp9\RecordDemo\obj\Debug\netcoreapp3.1\RecordDemo.csprojAssemblyReference.cache
