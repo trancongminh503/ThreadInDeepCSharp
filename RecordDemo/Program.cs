@@ -1,30 +1,30 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Linq;
+using Newtonsoft.Json;
+using System.IO;
 using static RecordDemo.HttpHelper;
 
 namespace RecordDemo
 {
    class Program
    {
-      public static HttpClient client = new HttpClient();
+      public static HttpClient Client = new HttpClient();
       public static List<Task<HttpResponseMessage>> TaskList
       {
          get
          {
             return new List<Task<HttpResponseMessage>>()
             {
-               client.GetAsync("https://jobs.github.com/positions.json?page=0"),
-               client.GetAsync("https://jobs.github.com/positions.json?page=1"),
-               client.GetAsync("https://jobs.github.com/positions/6efab349-9691-4a34-a6e6-96a7b544e60f.json"),
-               client.GetAsync("https://jobs.github.com/positions.json?page=2"),
-               client.GetAsync("https://jobs.github.com/positions.json?page=3"),
-               client.GetAsync("https://jobs.github.com/positions.json?page=4"),
+               Client.GetAsync("https://jobs.github.com/positions.json?page=0"),
+               Client.GetAsync("https://jobs.github.com/positions.json?page=1"),
+               Client.GetAsync("https://jobs.github.com/positions/6efab349-9691-4a34-a6e6-96a7b544e60f.json"),
+               Client.GetAsync("https://jobs.github.com/positions.json?page=2"),
+               Client.GetAsync("https://jobs.github.com/positions.json?page=3"),
+               Client.GetAsync("https://jobs.github.com/positions.json?page=4"),
             };
          }
       }
@@ -56,8 +56,7 @@ namespace RecordDemo
 
          getApiThreadTask.ContinueWith(t =>
          {
-            Console.WriteLine("ERROR: {0} to load {1}", t.Status, typeof(TResult));
-            //Console.WriteLine("Some thing went wrong: {0}", t.Exception.Message);
+            ColorConsole.WriteError(string.Format("ERROR: {0} to load {1}", t.Status, typeof(TResult)));
          }, TaskContinuationOptions.OnlyOnFaulted);
 
          return getApiThreadTask;
@@ -65,7 +64,8 @@ namespace RecordDemo
 
       static void Main(string[] args)
       {
-         Console.WriteLine("***Start program. Thread Id: {0}***", Thread.CurrentThread.ManagedThreadId);
+         ColorConsole.WriteWrappedHeader(string.Format(
+            "***Start program. Thread Id: {0}***", Thread.CurrentThread.ManagedThreadId));
          var jobList = new List<JobModel>();
          Stopwatch stopWatch = new Stopwatch();
          stopWatch.Start();
@@ -81,7 +81,7 @@ namespace RecordDemo
          {
             if (t.Status == TaskStatus.Faulted)
             {
-               Console.WriteLine("ERROR: One or more task is faulted.");
+               ColorConsole.WriteError(string.Format("ERROR: One or more task is faulted."));
             }
 
             Console.WriteLine(">>> Total jobs loaded: {0}", jobList.Count);
@@ -98,6 +98,101 @@ namespace RecordDemo
             Console.Write("Press any key to exit...");
          });
          Console.ReadLine();
+      }
+   }
+
+   public class ApiException : Exception
+   {
+      public int StatusCode { get; set; }
+      public string Content { get; set; }
+   }
+
+   public class HttpHelper
+   {
+      public static T DeserializeJsonFromStream<T>(Stream stream)
+      {
+         if (stream == null || stream.CanRead == false)
+            return default(T);
+
+         using (var sr = new StreamReader(stream))
+         using (var jtr = new JsonTextReader(sr))
+         {
+            var js = new JsonSerializer();
+            var searchResult = js.Deserialize<T>(jtr);
+            return searchResult;
+         }
+      }
+
+      public static async Task<string> StreamToStringAsync(Stream stream)
+      {
+         string content = null;
+
+         if (stream != null)
+            using (var sr = new StreamReader(stream))
+               content = await sr.ReadToEndAsync();
+
+         return content;
+      }
+
+      public static async Task<T> DeserializeFromStreamCallAsync<T>(string url, CancellationToken cancellationToken)
+      {
+         using (var client = new HttpClient())
+         using (var request = new HttpRequestMessage(HttpMethod.Get, url))
+         using (var response = await client.SendAsync(request, cancellationToken))
+         {
+            var stream = await response.Content.ReadAsStreamAsync();
+
+            if (response.IsSuccessStatusCode)
+               return DeserializeJsonFromStream<T>(stream);
+
+            var content = await StreamToStringAsync(stream);
+            throw new ApiException
+            {
+               StatusCode = (int)response.StatusCode,
+               Content = content
+            };
+         }
+      }
+   }
+
+   public class JobModel
+   {
+      [JsonProperty("id")]
+      public string Id { get; set; }
+
+      [JsonProperty("type")]
+      public string Type { get; set; }
+
+      [JsonProperty("url")]
+      public string Url { get; set; }
+
+      [JsonProperty("created_at")]
+      public string CreatedAt { get; set; }
+
+      [JsonProperty("company")]
+      public string Company { get; set; }
+
+      [JsonProperty("company_url")]
+      public string CompanyUrl { get; set; }
+
+      [JsonProperty("location")]
+      public string Location { get; set; }
+
+      [JsonProperty("title")]
+      public string Title { get; set; }
+
+      [JsonProperty("description")]
+      public string Description { get; set; }
+
+      [JsonProperty("how_to_apply")]
+      public string HowToApply { get; set; }
+
+      [JsonProperty("company_logo")]
+      public string CompanyLogo { get; set; }
+
+      public override string ToString()
+      {
+         return Id;
       }
    }
 }
