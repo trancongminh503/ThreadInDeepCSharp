@@ -30,7 +30,7 @@ namespace RecordDemo
       }
       public static float TaskCompleteCount = 0;
 
-      public static Task DoTaskInAnotherThread<TResult>(Task<HttpResponseMessage> task, Action<TResult> action)
+      public static Task<TResult> DoTaskInAnotherThread<TResult>(Task<HttpResponseMessage> task)
       {
          var getApiThreadTask = Task.Run(async () =>
          {
@@ -38,10 +38,10 @@ namespace RecordDemo
             var stream = await response.Content.ReadAsStreamAsync();
             if (response.IsSuccessStatusCode && typeof(TResult) != typeof(JobModel))
             {
-               action(DeserializeJsonFromStream<TResult>(stream));
-
+               var result = DeserializeJsonFromStream<TResult>(stream);
                var per = (++TaskCompleteCount / TaskList.Count) * 100;
                Console.WriteLine("Loading {0:F2}%...", per);
+               return result;
             }
             else
             {
@@ -70,12 +70,12 @@ namespace RecordDemo
          Stopwatch stopWatch = new Stopwatch();
          stopWatch.Start();
 
-         Task[] tasks = { DoTaskInAnotherThread<List<JobModel>>(TaskList[0], d => jobList.AddRange(d))
-                        , DoTaskInAnotherThread<List<JobModel>>(TaskList[1], d => jobList.AddRange(d))
-                        , DoTaskInAnotherThread<JobModel>(TaskList[2], d => jobList.Add(d))
-                        , DoTaskInAnotherThread<List<JobModel>>(TaskList[3], d => jobList.AddRange(d))
-                        , DoTaskInAnotherThread<List<JobModel>>(TaskList[4], d => jobList.AddRange(d))
-                        , DoTaskInAnotherThread<List<JobModel>>(TaskList[5], d => jobList.AddRange(d)) };
+         Task[] tasks = { DoTaskInAnotherThread<List<JobModel>>(TaskList[0]).ContinueWith(d => jobList.AddRange(d.Result))
+                        , DoTaskInAnotherThread<List<JobModel>>(TaskList[1]).ContinueWith(d => jobList.AddRange(d.Result))
+                        , DoTaskInAnotherThread<JobModel>(TaskList[2]).ContinueWith(d => jobList.Add(d.Result))
+                        , DoTaskInAnotherThread<List<JobModel>>(TaskList[3]).ContinueWith(d => jobList.AddRange(d.Result))
+                        , DoTaskInAnotherThread<List<JobModel>>(TaskList[4]).ContinueWith(d => jobList.AddRange(d.Result))
+                        , DoTaskInAnotherThread<List<JobModel>>(TaskList[5]).ContinueWith(d => jobList.AddRange(d.Result)) };
 
          Task.WhenAll(tasks).ContinueWith(t =>
          {
